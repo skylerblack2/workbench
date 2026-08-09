@@ -1,0 +1,53 @@
+#!/bin/bash
+# bench — push things onto the Workbench (password-gated GitHub Pages surface).
+#
+# Usage:
+#   bench drop <page.html>    encrypt page with the bench password, publish as the current drop
+#   bench clear               reset the bench to the empty state now
+#   bench password <new>      change the bench password (affects future drops only)
+#   bench url                 print the public URL
+#
+# The dropped page should be fully self-contained HTML (inline CSS/JS; remote
+# media/CDN references are allowed — unlike artifacts, nothing blocks them).
+
+set -euo pipefail
+ROOT="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+URL="https://skylerblack2.github.io/workbench/"
+PY="$ROOT/.venv/bin/python"
+
+cd "$ROOT"
+cmd="${1:-}"; shift || true
+
+case "$cmd" in
+  drop)
+    [ -f "${1:-}" ] || { echo "usage: bench drop <page.html>"; exit 1; }
+    [ -f .env ] && source .env
+    posted="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+    BENCH_PASSWORD="${BENCH_PASSWORD:-}" "$PY" build_drop.py "$1" index.html "$posted"
+    echo "$posted" > posted.txt
+    git add index.html posted.txt
+    git commit -q -m "drop: $(basename "$1") $posted"
+    git push -q
+    echo "dropped -> $URL (live in ~1 min)"
+    ;;
+  clear)
+    cp empty.html index.html
+    date -u +"%Y-%m-%dT%H:%M:%SZ" > posted.txt
+    git add index.html posted.txt
+    git commit -q -m "clear bench"
+    git push -q
+    echo "bench cleared"
+    ;;
+  password)
+    [ -n "${1:-}" ] || { echo "usage: bench password <new-password>"; exit 1; }
+    printf 'BENCH_PASSWORD=%q\n' "$1" > .env
+    echo "password updated (future drops only; current drop still uses the old one)"
+    ;;
+  url)
+    echo "$URL"
+    ;;
+  *)
+    sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'
+    exit 1
+    ;;
+esac
