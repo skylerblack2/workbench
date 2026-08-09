@@ -8,41 +8,99 @@
 <style>
   :root {
     --bg: #f6f4ef; --surface: #ffffff; --ink: #1a1a1a;
-    --muted: #6b6b66; --line: #e2ded4; --accent: #b4552d;
+    --muted: #6b6b66; --line: #e2ded4; --accent: #b4552d; --err: #c0392b;
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --bg: #171614; --surface: #211f1c; --ink: #ece9e2;
-      --muted: #8f8c84; --line: #34312c; --accent: #e0784a;
+      --muted: #8f8c84; --line: #34312c; --accent: #e0784a; --err: #e57368;
     }
   }
   body {
     background: var(--bg); color: var(--ink);
     font: 17px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    margin: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+    margin: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
   }
-  main { width: min(640px, calc(100% - 2.5rem)); padding: 3.5rem 0 4rem; }
-  header { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 2.5rem; }
-  h1 { font-size: 1.35rem; letter-spacing: 0.14em; text-transform: uppercase; margin: 0; font-weight: 650; }
+  main { width: min(420px, calc(100% - 2.5rem)); text-align: center; }
+  h1 { font-size: 1.35rem; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 650; margin: 0 0 0.4rem; }
   h1 span { color: var(--accent); }
-  .drop {
+  .stamp { color: var(--muted); font-size: 0.85rem; margin-bottom: 1.8rem; }
+  .stamp .stale { color: var(--accent); font-weight: 600; }
+  form {
     background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
-    padding: 3.5rem 2rem; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    padding: 2rem 1.6rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
   }
-  .glyph { font-size: 2.4rem; display: block; margin-bottom: 1rem; }
-  .how { color: var(--muted); font-size: 0.95rem; max-width: 42ch; margin: 1rem auto 0; }
-  footer { color: var(--muted); font-size: 0.8rem; text-align: center; margin-top: 2.5rem; line-height: 1.5; }
+  input {
+    width: 100%; box-sizing: border-box; font-size: 1.1rem; padding: 0.65rem 0.8rem;
+    border: 1px solid var(--line); border-radius: 9px; background: var(--bg);
+    color: var(--ink); text-align: center; outline: none;
+  }
+  input:focus { border-color: var(--accent); }
+  button {
+    margin-top: 0.9rem; width: 100%; font-size: 1rem; font-weight: 600;
+    padding: 0.65rem; border: none; border-radius: 9px;
+    background: var(--accent); color: #fff; cursor: pointer;
+  }
+  .msg { min-height: 1.4rem; font-size: 0.85rem; color: var(--err); margin: 0.7rem 0 0; }
+  .quiet { color: var(--muted); }
 </style>
 </head>
 <body>
 <main>
-  <header><h1>Work<span>bench</span></h1></header>
-  <div class="drop">
-    <span class="glyph">🛠️</span>
-    <p><strong>Nothing on the bench right now.</strong></p>
-    <p class="how">Tell any Claude session "put it on the workbench" and it'll appear here, at this same URL, replacing whatever was here before.</p>
-  </div>
-  <footer>Temporary surface · each new drop replaces the last · drops expire after 24 hours</footer>
+  <h1>Work<span>bench</span></h1>
+  <div class="stamp" id="stamp" data-posted="2026-08-09T14:26:25Z"></div>
+  <form id="gate">
+    <input type="password" id="pw" placeholder="password" autocomplete="current-password" autofocus>
+    <button type="submit">Unlock</button>
+    <p class="msg" id="msg"></p>
+  </form>
 </main>
+<script>
+const PAYLOAD = {"salt": "q4UIM/ZEtaHBetuTd7vicg==", "nonce": "BEGKJvZQCeETMiBH", "ct": "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"};
+const ITER = 310000;
+const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+
+(function stamp() {
+  const el = document.getElementById("stamp");
+  const posted = new Date(el.dataset.posted);
+  const hours = (Date.now() - posted.getTime()) / 3600000;
+  const when = posted.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  el.innerHTML = hours > 24 ? "posted " + when + " · <span class='stale'>expired</span>" : "posted " + when;
+})();
+
+async function tryDecrypt(pw) {
+  const raw = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveKey"]);
+  const key = await crypto.subtle.deriveKey(
+    { name: "PBKDF2", salt: b64(PAYLOAD.salt), iterations: ITER, hash: "SHA-256" },
+    raw, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+  const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(PAYLOAD.nonce) }, key, b64(PAYLOAD.ct));
+  return new TextDecoder().decode(pt);
+}
+
+function show(html) {
+  document.open(); document.write(html); document.close();
+}
+
+document.getElementById("gate").addEventListener("submit", async e => {
+  e.preventDefault();
+  const pw = document.getElementById("pw").value;
+  const msg = document.getElementById("msg");
+  msg.textContent = ""; msg.className = "msg quiet"; msg.textContent = "unlocking…";
+  try {
+    const html = await tryDecrypt(pw);
+    localStorage.setItem("bench_pw", pw);
+    show(html);
+  } catch {
+    msg.className = "msg"; msg.textContent = "that's not it";
+  }
+});
+
+(async function auto() {
+  const saved = localStorage.getItem("bench_pw");
+  if (!saved) return;
+  try { show(await tryDecrypt(saved)); }
+  catch { /* password changed or new drop with new salt+pw; fall through to prompt */ }
+})();
+</script>
 </body>
 </html>
