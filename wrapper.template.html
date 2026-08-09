@@ -56,6 +56,9 @@
   </form>
 </main>
 <script>
+(() => {
+// Everything lives in this IIFE: document.write() reuses the same global
+// scope, so wrapper globals would collide with the drop's own script.
 const PAYLOAD = {{PAYLOAD}};
 const ITER = 310000;
 const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
@@ -100,6 +103,7 @@ document.getElementById("gate").addEventListener("submit", async e => {
   if (!saved) return;
   try { show(await tryDecrypt(saved)); }
   catch { /* password changed or new drop with new salt+pw; fall through to prompt */ }
+})();
 })();
 </script>
 </body>
